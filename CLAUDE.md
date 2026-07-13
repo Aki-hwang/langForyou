@@ -13,9 +13,11 @@ JLPT 기반 일본어 단어 학습 앱 (한국어 사용자 대상). Next.js 16
 - 서버/DB 없음. 학습 진도(SRS 카드 상태, 일별 기록)는 `localStorage`에 저장 (`lib/storage.ts`).
 - 단어 데이터는 `data/n5.ts`~`n1.ts`의 정적 TypeScript 배열 (`lib/types.ts`의 `Word` 타입). `data/index.ts`가 집계·조회를 담당.
 - SRS는 `lib/srs.ts`의 SM-2 간소화 버전. 숙련도 100% = 복습 간격 21일 이상.
-- 발음은 `lib/tts.ts`에서 Web Speech API(ja-JP) 사용 — 외부 API 없음.
+- 발음은 `lib/tts.ts`에서 Web Speech API(ja-JP·ko-KR) 사용 — 외부 API 없음. `speakAsync`는 Promise 기반이라 연속듣기(`app/listen/[level]`)에서 순차 재생에 사용.
+- 연속듣기는 단어마다 일본어 읽기 3회 → 한국어 뜻 1회 자동 재생. 취소는 `tokenRef` 증가로 진행 중 async 루프를 무효화.
 - 페이지는 대부분 클라이언트 컴포넌트. 동적 라우트(`[level]`)는 서버 래퍼에서 `params`를 await 후 클라이언트 컴포넌트에 전달.
-- 모바일 우선: `max-w-lg` 중앙 정렬, 하단 탭 내비게이션(`components/BottomNav.tsx`), 다크 모드는 `prefers-color-scheme` 기반.
+- 렌더 중 `Date.now()`/`Math.random()`/ref 쓰기 금지(React Compiler lint). 시각은 `lib/now.ts`의 `sessionNow()`, 셔플은 `lib/random.ts`의 시드 PRNG, 클라 전용 값은 `useHydrated()`로 게이트.
+- 모바일 우선: `max-w-lg` 중앙 정렬, 하단 탭 내비게이션(`components/BottomNav.tsx`), 오른쪽 스와이프 뒤로가기(`components/SwipeBack.tsx`), 다크 모드는 `prefers-color-scheme` 기반.
 
 ## 규칙
 

@@ -56,29 +56,45 @@ export default function LevelClient({ level }: { level: JlptLevel }) {
       />
 
       {/* 액션 */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         <Link
           href={`/learn/${level.toLowerCase()}`}
-          className={`rounded-2xl bg-gradient-to-br p-4 text-white shadow-lg transition active:scale-[0.98] ${meta.gradient}`}
+          className={`flex items-center gap-3.5 rounded-2xl bg-gradient-to-br p-4 text-white shadow-lg transition active:scale-[0.98] ${meta.gradient}`}
         >
-          <p className="text-lg">📖</p>
-          <p className="mt-1.5 font-semibold">단어 학습</p>
-          <p className="mt-0.5 text-xs text-white/80">
-            {loaded
-              ? dueCount > 0
-                ? `복습 ${dueCount} + 새 단어`
-                : `새 단어 ${Math.min(10, newCount)}개`
-              : "플래시카드"}
-          </p>
+          <span className="text-2xl">📖</span>
+          <div className="flex-1">
+            <p className="font-semibold">단어 학습</p>
+            <p className="mt-0.5 text-xs text-white/80">
+              {loaded
+                ? dueCount > 0
+                  ? `복습 ${dueCount}개 + 새 단어 학습`
+                  : `새 단어 ${Math.min(10, newCount)}개 · 플래시카드`
+                : "플래시카드"}
+            </p>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 opacity-80">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
         </Link>
-        <Link
-          href={`/quiz/${level.toLowerCase()}`}
-          className="rounded-2xl border border-border-soft bg-card p-4 transition active:scale-[0.98]"
-        >
-          <p className="text-lg">✏️</p>
-          <p className="mt-1.5 font-semibold">퀴즈</p>
-          <p className="mt-0.5 text-xs text-muted">뜻 · 읽기 · 듣기</p>
-        </Link>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            href={`/quiz/${level.toLowerCase()}`}
+            className="rounded-2xl border border-border-soft bg-card p-4 transition active:scale-[0.98]"
+          >
+            <p className="text-lg">✏️</p>
+            <p className="mt-1.5 font-semibold">퀴즈</p>
+            <p className="mt-0.5 text-xs text-muted">뜻 · 읽기 · 듣기</p>
+          </Link>
+          <Link
+            href={`/listen/${level.toLowerCase()}`}
+            className="rounded-2xl border border-border-soft bg-card p-4 transition active:scale-[0.98]"
+          >
+            <p className="text-lg">🎧</p>
+            <p className="mt-1.5 font-semibold">연속듣기</p>
+            <p className="mt-0.5 text-xs text-muted">일본어 3회 · 한국어 1회</p>
+          </Link>
+        </div>
       </div>
 
       {/* 단어 목록 */}
