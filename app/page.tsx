@@ -1,65 +1,125 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { JLPT_LEVELS } from "@/lib/types";
+import { LEVEL_META, WORDS_BY_LEVEL, ALL_WORDS } from "@/data";
+import { useCards, useDayStats, calcStreakDays } from "@/lib/storage";
+import { sessionNow } from "@/lib/now";
+import { isDue, masteryOf } from "@/lib/srs";
+import ProgressBar from "@/components/ProgressBar";
+
+export default function HomePage() {
+  const { cards, loaded } = useCards();
+  const days = useDayStats();
+
+  const now = sessionNow();
+  const streak = calcStreakDays(days, new Date(now));
+  const dueCount = ALL_WORDS.filter((w) => {
+    const c = cards[w.id];
+    return c && c.reps > 0 && isDue(c, now);
+  }).length;
+  const learnedCount = Object.values(cards).filter((c) => c.reps > 0).length;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="animate-pop-in space-y-6">
+      <header className="pt-2">
+        <p className="text-sm font-medium text-muted">こんにちは 👋</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">
+          오늘도 일본어 한 걸음
+        </h1>
+      </header>
+
+      {/* 요약 카드 */}
+      <section className="grid grid-cols-3 gap-3">
+        <div className="rounded-2xl border border-border-soft bg-card p-3.5">
+          <p className="text-xs text-muted">연속 학습</p>
+          <p className="mt-1 text-xl font-bold">
+            {streak}
+            <span className="ml-0.5 text-sm font-medium text-muted">일</span>
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="rounded-2xl border border-border-soft bg-card p-3.5">
+          <p className="text-xs text-muted">배운 단어</p>
+          <p className="mt-1 text-xl font-bold">
+            {loaded ? learnedCount : "–"}
+            <span className="ml-0.5 text-sm font-medium text-muted">개</span>
+          </p>
         </div>
-      </main>
+        <div className="rounded-2xl border border-border-soft bg-card p-3.5">
+          <p className="text-xs text-muted">복습 대기</p>
+          <p className="mt-1 text-xl font-bold text-indigo-600 dark:text-indigo-400">
+            {loaded ? dueCount : "–"}
+            <span className="ml-0.5 text-sm font-medium text-muted">개</span>
+          </p>
+        </div>
+      </section>
+
+      {/* 복습 CTA */}
+      {dueCount > 0 && (
+        <Link
+          href="/review"
+          className="block rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-500 p-4 text-white shadow-lg shadow-indigo-500/25 transition active:scale-[0.98]"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold">복습할 시간이에요</p>
+              <p className="mt-0.5 text-sm text-white/80">
+                {dueCount}개 단어가 기다리고 있어요
+              </p>
+            </div>
+            <span className="text-2xl">⏰</span>
+          </div>
+        </Link>
+      )}
+
+      {/* JLPT 레벨 */}
+      <section>
+        <h2 className="mb-3 text-base font-semibold">JLPT 레벨별 학습</h2>
+        <div className="space-y-3">
+          {JLPT_LEVELS.map((level) => {
+            const meta = LEVEL_META[level];
+            const words = WORDS_BY_LEVEL[level];
+            const mastered = words.filter(
+              (w) => masteryOf(cards[w.id]) >= 100
+            ).length;
+            const started = words.filter(
+              (w) => (cards[w.id]?.reps ?? 0) > 0
+            ).length;
+            const pct = words.length ? (mastered / words.length) * 100 : 0;
+
+            return (
+              <Link
+                key={level}
+                href={`/level/${level.toLowerCase()}`}
+                className="block rounded-2xl border border-border-soft bg-card p-4 transition active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-lg font-bold text-white ${meta.gradient}`}
+                  >
+                    {level}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between">
+                      <p className="font-semibold">{meta.title}</p>
+                      <p className="text-xs text-muted">
+                        {mastered}/{words.length}
+                      </p>
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-muted">
+                      {meta.desc}
+                      {started > 0 && ` · 학습 중 ${started}개`}
+                    </p>
+                    <div className="mt-2">
+                      <ProgressBar value={pct} barClassName={meta.accentBg} />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

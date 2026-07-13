@@ -1,0 +1,18 @@
+{
+  "name": "LangForYou — 일본어 학습",
+  "short_name": "LangForYou",
+  "description": "JLPT 기반 일본어 단어 학습 · 플래시카드 · 퀴즈 · 간격 반복 복습",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1120",
+  "theme_color": "#6366f1",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LangForYou 🇯🇵 — 일본어 학습 앱
 
-## Getting Started
+JLPT 기반 일본어 단어 학습 앱. 모바일 우선 디자인으로, 플래시카드·퀴즈·간격 반복(SRS) 복습을 지원합니다.
 
-First, run the development server:
+## 주요 기능
+
+- **JLPT 레벨별 단어장** — N5(100) · N4(90) · N3(80) · N2(70) · N1(60), 총 400단어
+  - 각 단어: 한자 · 히라가나 읽기 · 한국어 뜻 · 품사 · 일본어 예문 + 번역
+- **플래시카드 학습** — 카드를 뒤집어 읽기/뜻/예문 확인, 자동 발음 재생
+- **음성 재생 (TTS)** — 브라우저 내장 Web Speech API(ja-JP) 사용, 서버·API 키 불필요
+- **퀴즈 3종** — 뜻 고르기 / 읽기(한자→가나) 고르기 / 듣고 고르기
+- **간격 반복 복습 (SRS)** — SM-2 간소화 알고리즘. "다시/어려움/알맞음/쉬움" 평가에 따라
+  다음 복습 시점이 자동 조절되어 장기 기억을 극대화
+- **학습 통계** — 연속 학습일, 정답률, 최근 7일 활동, 레벨별 진행률
+- **모바일 최적화** — 하단 탭 내비게이션, 다크 모드, PWA(홈 화면에 추가 가능)
+
+학습 진도는 브라우저 `localStorage`에 저장되므로 별도의 데이터베이스 없이 동작합니다.
+
+## 기술 스택
+
+- [Next.js 16](https://nextjs.org) (App Router) + React 19 + TypeScript
+- Tailwind CSS v4
+- Web Speech API (일본어 TTS)
+
+## 개발
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```bash
+npm run build      # 프로덕션 빌드
+npm run start      # 프로덕션 서버
+npm run lint       # ESLint
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Railway 배포
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+이 저장소에는 `railway.json`이 포함되어 있어 바로 배포할 수 있습니다.
 
-## Learn More
+1. [Railway](https://railway.app) → **New Project** → **Deploy from GitHub repo** → 이 저장소 선택
+2. Railway가 Next.js를 자동 감지해 `npm run build` → `npm run start`로 실행합니다
+3. **Settings → Networking → Generate Domain**으로 공개 URL 생성
 
-To learn more about Next.js, take a look at the following resources:
+`PORT` 환경 변수는 Railway가 자동 주입하며, 시작 스크립트가 이를 사용합니다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 프로젝트 구조
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/
+  page.tsx              # 홈 — 레벨 선택, 진도 요약, 복습 CTA
+  level/[level]/        # 레벨 상세 — 단어 목록, 학습/퀴즈 진입
+  learn/[level]/        # 플래시카드 학습 세션
+  quiz/[level]/         # 퀴즈 (뜻/읽기/듣기)
+  review/               # 전체 레벨 SRS 복습
+  stats/                # 학습 통계
+components/             # 공용 UI (StudySession, BottomNav, AudioButton...)
+data/                   # JLPT 레벨별 단어 데이터 (n5~n1)
+lib/
+  srs.ts                # SM-2 간소화 간격 반복 알고리즘
+  storage.ts            # localStorage 진도 저장 + React 훅
+  tts.ts                # Web Speech API 일본어 발음
+```
 
-## Deploy on Vercel
+## 단어 추가하기
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`data/n5.ts` 등의 배열에 같은 형식으로 항목을 추가하면 됩니다:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```ts
+{
+  id: "n5-101",
+  kanji: "天気",
+  kana: "てんき",
+  meaning: "날씨",
+  pos: "명사",
+  example: { ja: "今日はいい天気ですね。", ko: "오늘은 날씨가 좋네요." },
+}
+```
