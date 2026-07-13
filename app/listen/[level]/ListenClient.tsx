@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { JlptLevel } from "@/lib/types";
 import { WORDS_BY_LEVEL, LEVEL_META } from "@/data";
 import { speakAsync, stopSpeaking, ttsAvailable } from "@/lib/tts";
+import { acquireWakeLock, releaseWakeLock } from "@/lib/wakeLock";
 import { useHydrated } from "@/lib/storage";
 import ProgressBar from "@/components/ProgressBar";
 
@@ -49,6 +50,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
     return () => {
       token.current += 1;
       stopSpeaking();
+      void releaseWakeLock();
     };
   }, []);
 
@@ -56,6 +58,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
     const token = ++tokenRef.current;
     setPlaying(true);
     setFinished(false);
+    void acquireWakeLock(); // 재생 중 화면 꺼짐 방지
 
     for (let i = startIndex; i < words.length; i++) {
       if (tokenRef.current !== token) return;
@@ -86,6 +89,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
       setPlaying(false);
       setPhase(null);
       setFinished(true);
+      void releaseWakeLock();
     }
   }
 
@@ -94,6 +98,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
     stopSpeaking();
     setPlaying(false);
     setPhase(null);
+    void releaseWakeLock();
   }
 
   function toggle() {
@@ -270,7 +275,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
         {finished
           ? "🌸 마지막 단어까지 들었어요"
           : playing
-            ? "자동으로 다음 단어로 넘어가요"
+            ? "자동으로 다음 단어로 넘어가요 · 재생 중엔 화면이 꺼지지 않아요"
             : "재생 버튼을 누르면 일본어 3회 · 한국어 1회 반복해서 들려줘요"}
       </p>
     </div>
