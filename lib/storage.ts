@@ -97,7 +97,7 @@ export function useHydrated(): boolean {
   );
 }
 
-function recordDay(correct: boolean) {
+function recordDay(correct: boolean): string {
   const days = loadDayStats();
   const key = todayKey(new Date());
   const cur = days[key] ?? { reviews: 0, correct: 0 };
@@ -106,6 +106,7 @@ function recordDay(correct: boolean) {
     correct: cur.correct + (correct ? 1 : 0),
   };
   safeSet(DAYS_KEY, JSON.stringify(days));
+  return key;
 }
 
 /** SRS 카드 상태 훅 — localStorage 기반, 컴포넌트 간 실시간 동기화 */
@@ -122,11 +123,48 @@ export function useCards() {
     const cur = all[wordId] ?? initialCardState(wordId);
     all[wordId] = gradeCard(cur, g);
     safeSet(CARDS_KEY, JSON.stringify(all));
-    recordDay(g !== "again");
+    const day = recordDay(g !== "again");
     emitChange();
+    // 로그인 상태면 서버 동기화 모듈(AuthBoot)이 이 이벤트를 받아 push한다
+    window.dispatchEvent(
+      new CustomEvent("lfy:graded", { detail: { wordId, day } })
+    );
   }, []);
 
   return { cards, loaded, grade };
+}
+
+/**
+ * 서버에서 내려받은 진도를 로컬과 병합해 저장한다.
+ * 카드: reps가 큰 쪽(같으면 lastReviewedAt이 최신) 유지 / 일별 기록: 큰 값 유지
+ */
+export function mergeServerData(
+  serverCards: CardState[],
+  serverDays: { day: string; reviews: number; correct: number }[]
+): void {
+  const cards = { ...loadCards() };
+  for (const sc of serverCards) {
+    const lc = cards[sc.wordId];
+    if (
+      !lc ||
+      sc.reps > lc.reps ||
+      (sc.reps === lc.reps && sc.lastReviewedAt > lc.lastReviewedAt)
+    ) {
+      cards[sc.wordId] = sc;
+    }
+  }
+  safeSet(CARDS_KEY, JSON.stringify(cards));
+
+  const days = { ...loadDayStats() };
+  for (const sd of serverDays) {
+    const cur = days[sd.day] ?? { reviews: 0, correct: 0 };
+    days[sd.day] = {
+      reviews: Math.max(cur.reviews, sd.reviews),
+      correct: Math.max(cur.correct, sd.correct),
+    };
+  }
+  safeSet(DAYS_KEY, JSON.stringify(days));
+  emitChange();
 }
 
 /** 일별 학습 기록 훅 */

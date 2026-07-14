@@ -17,8 +17,12 @@ JLPT 기반 일본어 단어 학습 앱. 모바일 우선 디자인으로, 플�
   다음 복습 시점이 자동 조절되어 장기 기억을 극대화
 - **학습 통계** — 연속 학습일, 정답률, 최근 7일 활동, 레벨별 진행률
 - **모바일 최적화** — 하단 탭 내비게이션, 다크 모드, PWA(홈 화면에 추가 가능)
+- **계정 & 기기 간 동기화** — 이메일 로그인 시 학습 기록이 PostgreSQL에 자동 저장되어
+  다른 기기에서도 이어서 학습 가능 (학습할 때마다 자동 push, 로그인 시 병합)
 
-학습 진도는 브라우저 `localStorage`에 저장되므로 별도의 데이터베이스 없이 동작합니다.
+비로그인 시에는 브라우저 `localStorage`에만 저장되며, DB 없이도 모든 기능이 동작합니다.
+로그인 기능을 켜려면 PostgreSQL(`DATABASE_URL` 환경 변수)만 연결하면 됩니다 —
+스키마는 첫 요청 때 자동 생성됩니다.
 
 ## 기술 스택
 
@@ -48,6 +52,15 @@ npm run lint       # ESLint
 3. **Settings → Networking → Generate Domain**으로 공개 URL 생성
 
 `PORT` 환경 변수는 Railway가 자동 주입하며, 시작 스크립트가 이를 사용합니다.
+
+### 로그인(계정 동기화) 켜기 — PostgreSQL 연결
+
+1. Railway 프로젝트 캔버스에서 **Create → Database → Add PostgreSQL**
+2. 앱 서비스 → **Variables** 탭 → **New Variable → Add Reference** →
+   Postgres의 **`DATABASE_URL`** 선택 후 저장
+3. 자동 재배포가 끝나면 앱의 **계정 탭**에서 회원가입/로그인 가능
+
+`DATABASE_URL`이 없으면 로그인 기능만 비활성화되고 나머지는 정상 동작합니다.
 
 ## 프로젝트 구조
 

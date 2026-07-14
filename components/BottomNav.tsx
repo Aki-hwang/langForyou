@@ -32,6 +32,16 @@ const TABS = [
       </svg>
     ),
   },
+  {
+    href: "/account",
+    label: "계정",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6">
+        <circle cx="12" cy="8" r="4" />
+        <path strokeLinecap="round" d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" />
+      </svg>
+    ),
+  },
 ];
 
 export default function BottomNav() {

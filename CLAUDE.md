@@ -10,7 +10,10 @@ JLPT 기반 일본어 단어 학습 앱 (한국어 사용자 대상). Next.js 16
 
 ## 아키텍처
 
-- 서버/DB 없음. 학습 진도(SRS 카드 상태, 일별 기록)는 `localStorage`에 저장 (`lib/storage.ts`).
+- 학습 진도(SRS 카드 상태, 일별 기록)는 `localStorage`가 1차 저장소 (`lib/storage.ts`).
+- 계정/동기화(선택): Railway PostgreSQL(`DATABASE_URL`) + 이메일 로그인(bcryptjs, 세션 쿠키).
+  서버 코드는 `lib/server/{db,auth}.ts`, API는 `app/api/{auth,progress}`. 스키마는 첫 쿼리 때 자동 생성.
+  로그인 시 `lib/sync.ts`가 grade 이벤트(`lfy:graded`)를 받아 디바운스 push, 로그인/앱 시작 시 `fullSync()`로 병합(카드: reps 큰 쪽 우선, 일별: 큰 값 유지). DATABASE_URL 없으면 로그인만 비활성.
 - 단어 데이터는 `data/n5.ts`~`n1.ts`의 정적 TypeScript 배열 (`lib/types.ts`의 `Word` 타입). `data/index.ts`가 집계·조회를 담당.
 - SRS는 `lib/srs.ts`의 SM-2 간소화 버전. 숙련도 100% = 복습 간격 21일 이상.
 - 발음은 `lib/tts.ts`에서 Web Speech API(ja-JP·ko-KR) 사용 — 외부 API 없음. `speakAsync`는 Promise 기반이라 연속듣기(`app/listen/[level]`)에서 순차 재생에 사용.

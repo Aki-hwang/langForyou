@@ -4,6 +4,7 @@ import Link from "next/link";
 import { JLPT_LEVELS } from "@/lib/types";
 import { LEVEL_META, WORDS_BY_LEVEL, ALL_WORDS } from "@/data";
 import { useCards, useDayStats, calcStreakDays } from "@/lib/storage";
+import { useAuth } from "@/lib/authStore";
 import { sessionNow } from "@/lib/now";
 import { isDue, masteryOf } from "@/lib/srs";
 import ProgressBar from "@/components/ProgressBar";
@@ -11,6 +12,7 @@ import ProgressBar from "@/components/ProgressBar";
 export default function HomePage() {
   const { cards, loaded } = useCards();
   const days = useDayStats();
+  const { user, dbConfigured } = useAuth();
 
   const now = sessionNow();
   const streak = calcStreakDays(days, new Date(now));
@@ -53,6 +55,16 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* 로그인 유도 (비로그인 & DB 연결됨) */}
+      {user === null && dbConfigured && (
+        <Link
+          href="/account"
+          className="block rounded-2xl border border-dashed border-indigo-300 bg-indigo-500/5 px-4 py-3 text-xs leading-relaxed text-indigo-600 transition active:scale-[0.98] dark:border-indigo-700 dark:text-indigo-400"
+        >
+          🔐 로그인하면 학습 기록이 계정에 저장되고 다른 기기와 동기화돼요 →
+        </Link>
+      )}
 
       {/* 복습 CTA */}
       {dueCount > 0 && (
