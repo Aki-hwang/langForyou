@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { login, logout, signup, useAuth } from "@/lib/authStore";
+import { login, logout, signup, updateNickname, useAuth } from "@/lib/authStore";
 import { fullSync, useSyncInfo } from "@/lib/sync";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -9,6 +9,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   email_taken: "이미 가입된 이메일이에요. 로그인해 주세요.",
   weak_password: "비밀번호는 6자 이상으로 해주세요.",
   invalid_email: "이메일 형식을 확인해 주세요.",
+  invalid_nickname: "별명은 1~12자로 해주세요.",
   db_not_configured:
     "서버에 데이터베이스가 아직 연결되지 않았어요. (Railway에서 PostgreSQL 추가 필요)",
   network: "네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.",
@@ -29,18 +30,40 @@ export default function AccountPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [nickname, setNickname] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // 별명 수정 (로그인 상태)
+  const [editingNick, setEditingNick] = useState(false);
+  const [newNick, setNewNick] = useState("");
+  const [nickError, setNickError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
     setBusy(true);
     setError(null);
-    const fn = mode === "login" ? login : signup;
-    const result = await fn(email, password);
+    const result =
+      mode === "login"
+        ? await login(email, password)
+        : await signup(email, password, nickname);
     if (!result.ok) {
       setError(ERROR_MESSAGES[result.error] ?? ERROR_MESSAGES.unknown);
+    }
+    setBusy(false);
+  }
+
+  async function saveNickname(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setNickError(null);
+    const result = await updateNickname(newNick);
+    if (result.ok) {
+      setEditingNick(false);
+    } else {
+      setNickError(ERROR_MESSAGES[result.error] ?? ERROR_MESSAGES.unknown);
     }
     setBusy(false);
   }
@@ -71,7 +94,23 @@ export default function AccountPage() {
               👤
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">{user.email}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="truncate font-semibold">
+                  {user.nickname ?? "별명 없음"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingNick((v) => !v);
+                    setNewNick(user.nickname ?? "");
+                    setNickError(null);
+                  }}
+                  className="shrink-0 text-xs font-medium text-indigo-600 dark:text-indigo-400"
+                >
+                  {editingNick ? "취소" : "수정"}
+                </button>
+              </div>
+              <p className="truncate text-xs text-muted">{user.email}</p>
               <p className="mt-0.5 text-xs text-muted">
                 {sync.syncing
                   ? "동기화 중..."
@@ -93,6 +132,32 @@ export default function AccountPage() {
               aria-hidden
             />
           </div>
+
+          {editingNick && (
+            <form onSubmit={saveNickname} className="mt-3 flex gap-2">
+              <input
+                type="text"
+                required
+                maxLength={12}
+                placeholder="별명 (1~12자)"
+                value={newNick}
+                onChange={(e) => setNewNick(e.target.value)}
+                className="min-w-0 flex-1 rounded-xl border border-border-soft bg-background px-3 py-2.5 text-sm outline-none focus:border-indigo-400"
+              />
+              <button
+                type="submit"
+                disabled={busy}
+                className="shrink-0 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-50"
+              >
+                저장
+              </button>
+            </form>
+          )}
+          {nickError && (
+            <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">
+              {nickError}
+            </p>
+          )}
         </div>
 
         <div className="rounded-2xl bg-indigo-500/5 p-4 text-xs leading-relaxed text-muted">
@@ -161,6 +226,18 @@ export default function AccountPage() {
       </div>
 
       <form onSubmit={submit} className="space-y-3">
+        {mode === "signup" && (
+          <input
+            type="text"
+            required
+            maxLength={12}
+            autoComplete="nickname"
+            placeholder="별명 (1~12자, 예: 아키)"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            className="w-full rounded-2xl border border-border-soft bg-card px-4 py-3.5 text-[15px] outline-none focus:border-indigo-400"
+          />
+        )}
         <input
           type="email"
           required

@@ -24,11 +24,24 @@ export default function HomePage() {
 
   return (
     <div className="animate-pop-in space-y-6">
-      <header className="pt-2">
-        <p className="text-sm font-medium text-muted">こんにちは 👋</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">
-          오늘도 일본어 한 걸음
-        </h1>
+      <header className="flex items-start justify-between gap-3 pt-2">
+        <div>
+          <p className="text-sm font-medium text-muted">こんにちは 👋</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">
+            오늘도 일본어 한 걸음
+          </h1>
+        </div>
+        {user && (
+          <Link
+            href="/account"
+            className="mt-0.5 flex max-w-[40%] shrink-0 items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition active:scale-95 dark:text-indigo-400"
+          >
+            <span aria-hidden>👤</span>
+            <span className="truncate">
+              {user.nickname ?? user.email.split("@")[0]}님
+            </span>
+          </Link>
+        )}
       </header>
 
       {/* 요약 카드 */}

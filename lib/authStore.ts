@@ -6,6 +6,7 @@ import { fullSync, setSyncEnabled } from "./sync";
 export interface User {
   id: string;
   email: string;
+  nickname: string | null;
 }
 
 export interface AuthState {
@@ -58,12 +59,15 @@ export function useAuth(): AuthState {
 
 type AuthResult = { ok: true } | { ok: false; error: string };
 
-async function authRequest(path: string, email: string, password: string): Promise<AuthResult> {
+async function authRequest(
+  path: string,
+  payload: Record<string, string>
+): Promise<AuthResult> {
   try {
     const r = await fetch(path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(payload),
     });
     if (!r.ok) {
       const j = (await r.json().catch(() => ({}))) as { error?: string };
@@ -78,11 +82,19 @@ async function authRequest(path: string, email: string, password: string): Promi
 }
 
 export function login(email: string, password: string): Promise<AuthResult> {
-  return authRequest("/api/auth/login", email, password);
+  return authRequest("/api/auth/login", { email, password });
 }
 
-export function signup(email: string, password: string): Promise<AuthResult> {
-  return authRequest("/api/auth/signup", email, password);
+export function signup(
+  email: string,
+  password: string,
+  nickname: string
+): Promise<AuthResult> {
+  return authRequest("/api/auth/signup", { email, password, nickname });
+}
+
+export function updateNickname(nickname: string): Promise<AuthResult> {
+  return authRequest("/api/auth/nickname", { nickname });
 }
 
 export async function logout(): Promise<void> {

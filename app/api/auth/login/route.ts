@@ -22,8 +22,13 @@ export async function POST(req: Request) {
   const email = normalizeEmail(body.email ?? "");
   const password = body.password ?? "";
 
-  const { rows } = await query<{ id: string; email: string; password_hash: string }>(
-    "SELECT id, email, password_hash FROM users WHERE email = $1",
+  const { rows } = await query<{
+    id: string;
+    email: string;
+    nickname: string | null;
+    password_hash: string;
+  }>(
+    "SELECT id, email, nickname, password_hash FROM users WHERE email = $1",
     [email]
   );
   const user = rows[0];
@@ -34,5 +39,7 @@ export async function POST(req: Request) {
 
   const token = await createSession(user.id);
   await setSessionCookie(token);
-  return NextResponse.json({ user: { id: user.id, email: user.email } });
+  return NextResponse.json({
+    user: { id: user.id, email: user.email, nickname: user.nickname },
+  });
 }

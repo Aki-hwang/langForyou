@@ -9,6 +9,17 @@ const SESSION_DAYS = 180;
 export interface AuthUser {
   id: string;
   email: string;
+  nickname: string | null;
+}
+
+/** 별명 규칙: 공백 제거 후 1~12자 */
+export function normalizeNickname(nickname: string): string {
+  return nickname.trim();
+}
+
+export function validNickname(nickname: string): boolean {
+  const n = nickname.trim();
+  return n.length >= 1 && n.length <= 12;
 }
 
 export function normalizeEmail(email: string): string {
@@ -65,8 +76,8 @@ export async function getSessionUser(): Promise<AuthUser | null> {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  const { rows } = await query<{ id: string; email: string }>(
-    `SELECT u.id, u.email FROM sessions s
+  const { rows } = await query<AuthUser>(
+    `SELECT u.id, u.email, u.nickname FROM sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.token = $1 AND s.expires_at > now()`,
     [token]
