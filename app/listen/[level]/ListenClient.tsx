@@ -8,6 +8,7 @@ import { speakAsync, stopSpeaking, ttsAvailable } from "@/lib/tts";
 import { acquireWakeLock, releaseWakeLock } from "@/lib/wakeLock";
 import { useHydrated } from "@/lib/storage";
 import ProgressBar from "@/components/ProgressBar";
+import VoiceSettings from "@/components/VoiceSettings";
 
 const JA_REPEAT = 3; // 일본어 3번
 const KO_REPEAT = 1; // 한국어 1번
@@ -17,9 +18,9 @@ function delay(ms: number): Promise<void> {
 }
 
 const SPEEDS = [
-  { label: "느리게", rate: 0.7 },
-  { label: "보통", rate: 0.85 },
-  { label: "빠르게", rate: 1.0 },
+  { label: "느리게", rate: 0.6 },
+  { label: "보통", rate: 0.75 },
+  { label: "빠르게", rate: 0.95 },
 ];
 
 /**
@@ -37,7 +38,8 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
     null
   );
   const [finished, setFinished] = useState(false);
-  const [rate, setRate] = useState(0.85);
+  const [rate, setRate] = useState(0.75);
+  const [showVoices, setShowVoices] = useState(false);
   const hydrated = useHydrated();
 
   // 재생 세션 토큰 — 값이 바뀌면 진행 중인 루프가 스스로 종료된다
@@ -149,7 +151,20 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
         <span className="text-xs font-medium text-muted">
           {index + 1}/{words.length}
         </span>
+        <button
+          type="button"
+          aria-label="음성 설정"
+          onClick={() => setShowVoices(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-foreground/5 text-muted transition active:scale-90"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+            <circle cx="12" cy="12" r="3" />
+            <path strokeLinecap="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
       </div>
+
+      {showVoices && <VoiceSettings onClose={() => setShowVoices(false)} />}
 
       {hydrated && !ttsAvailable() && (
         <p className="mt-4 rounded-2xl bg-amber-500/10 p-3 text-center text-xs text-amber-700 dark:text-amber-400">
