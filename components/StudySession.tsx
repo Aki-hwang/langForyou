@@ -105,8 +105,11 @@ export default function StudySession({
 
       {/* 카드 */}
       <div className="perspective mt-5 flex-1">
-        {/* 발음 버튼이 내부에 있어 <button> 중첩을 피하려고 div 사용 */}
+        {/* 발음 버튼이 내부에 있어 <button> 중첩을 피하려고 div 사용.
+            key로 단어마다 리마운트 → 다음 카드가 회전 애니메이션 없이 앞면부터 시작
+            (회전 중 다음 단어의 정답이 미리 보이는 문제 방지) */}
         <div
+          key={current.id}
           role="button"
           tabIndex={0}
           aria-label={flipped ? undefined : "탭해서 뜻 확인"}

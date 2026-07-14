@@ -20,6 +20,15 @@ function safeParse<T>(raw: string | null, fallback: T): T {
   }
 }
 
+/** 프라이빗 모드 등에서 setItem이 예외를 던져도 앱이 죽지 않도록 */
+function safeSet(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // 저장 불가 환경 — 세션 내 상태만 유지
+  }
+}
+
 export function loadCards(): CardMap {
   if (typeof window === "undefined") return {};
   return safeParse<CardMap>(localStorage.getItem(CARDS_KEY), {});
@@ -96,7 +105,7 @@ function recordDay(correct: boolean) {
     reviews: cur.reviews + 1,
     correct: cur.correct + (correct ? 1 : 0),
   };
-  localStorage.setItem(DAYS_KEY, JSON.stringify(days));
+  safeSet(DAYS_KEY, JSON.stringify(days));
 }
 
 /** SRS 카드 상태 훅 — localStorage 기반, 컴포넌트 간 실시간 동기화 */
@@ -112,7 +121,7 @@ export function useCards() {
     const all = { ...loadCards() };
     const cur = all[wordId] ?? initialCardState(wordId);
     all[wordId] = gradeCard(cur, g);
-    localStorage.setItem(CARDS_KEY, JSON.stringify(all));
+    safeSet(CARDS_KEY, JSON.stringify(all));
     recordDay(g !== "again");
     emitChange();
   }, []);

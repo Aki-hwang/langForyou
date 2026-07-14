@@ -141,6 +141,12 @@ export default function StatsPage() {
           })}
         </div>
       </section>
+
+      <p className="pb-2 text-center text-[11px] leading-relaxed text-muted">
+        학습 기록은 이 기기의 브라우저에 저장됩니다.
+        <br />
+        브라우저(또는 홈 화면 앱)를 바꾸거나 사이트 데이터를 지우면 기록이 초기화돼요.
+      </p>
     </div>
   );
 }
