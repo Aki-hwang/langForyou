@@ -7,7 +7,8 @@ import { fullSync, useSyncInfo } from "@/lib/sync";
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: "이메일 또는 비밀번호가 올바르지 않아요.",
   email_taken: "이미 가입된 이메일이에요. 로그인해 주세요.",
-  weak_password: "비밀번호는 6자 이상으로 해주세요.",
+  weak_password: "비밀번호는 8자 이상으로 해주세요.",
+  rate_limited: "시도가 너무 많아요. 잠시 후 다시 시도해 주세요.",
   invalid_email: "이메일 형식을 확인해 주세요.",
   invalid_nickname: "별명은 1~12자로 해주세요.",
   db_not_configured:
@@ -250,9 +251,9 @@ export default function AccountPage() {
         <input
           type="password"
           required
-          minLength={6}
+          minLength={mode === "signup" ? 8 : 6}
           autoComplete={mode === "login" ? "current-password" : "new-password"}
-          placeholder="비밀번호 (6자 이상)"
+          placeholder={mode === "signup" ? "비밀번호 (8자 이상)" : "비밀번호"}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full rounded-2xl border border-border-soft bg-card px-4 py-3.5 text-[15px] outline-none focus:border-indigo-400"
