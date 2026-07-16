@@ -48,6 +48,8 @@ export async function verifyPassword(
 export async function createSession(userId: string): Promise<string> {
   const token = randomUUID() + randomUUID().replace(/-/g, "");
   const expires = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  // 로그인 빈도가 낮으므로 이 시점에 만료 세션을 함께 정리
+  await query("DELETE FROM sessions WHERE expires_at < now()");
   await query(
     "INSERT INTO sessions (token, user_id, expires_at) VALUES ($1, $2, $3)",
     [token, userId, expires.toISOString()]

@@ -6,12 +6,16 @@ import {
   setSessionCookie,
   verifyPassword,
 } from "@/lib/server/auth";
+import { clientIp, rateLimit } from "@/lib/server/ratelimit";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   if (!dbConfigured()) {
     return NextResponse.json({ error: "db_not_configured" }, { status: 503 });
+  }
+  if (!rateLimit(`login:${clientIp(req)}`, 10, 60_000)) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
   let body: { email?: string; password?: string };
   try {

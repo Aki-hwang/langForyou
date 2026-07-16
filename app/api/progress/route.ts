@@ -12,6 +12,13 @@ interface DayRow {
 }
 
 const MAX_BATCH = 3000;
+const CHUNK = 200;
+
+function dedupeBy<T>(items: T[], key: (item: T) => string): T[] {
+  const map = new Map<string, T>();
+  for (const item of items) map.set(key(item), item);
+  return [...map.values()];
+}
 
 function validCard(c: unknown): c is CardState {
   if (typeof c !== "object" || c === null) return false;
@@ -104,14 +111,37 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
 
-  const cards = (body.cards ?? []).filter(validCard).slice(0, MAX_BATCH);
-  const days = (body.days ?? []).filter(validDay).slice(0, MAX_BATCH);
+  // ON CONFLICT는 같은 키가 한 INSERT에 두 번 오면 에러 — 키 기준 중복 제거
+  const cards = dedupeBy(
+    (body.cards ?? []).filter(validCard).slice(0, MAX_BATCH),
+    (c) => c.wordId
+  );
+  const days = dedupeBy(
+    (body.days ?? []).filter(validDay).slice(0, MAX_BATCH),
+    (d) => d.day
+  );
 
-  for (const c of cards) {
+  for (let i = 0; i < cards.length; i += CHUNK) {
+    const chunk = cards.slice(i, i + CHUNK);
+    const params: unknown[] = [user.id];
+    const rows = chunk.map((c) => {
+      const base = params.length;
+      params.push(
+        c.wordId,
+        c.streak,
+        c.intervalDays,
+        c.ease,
+        c.dueAt,
+        c.lastReviewedAt,
+        c.reps,
+        c.lapses
+      );
+      return `($1,$${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6},$${base + 7},$${base + 8})`;
+    });
     await query(
       `INSERT INTO progress_cards
          (user_id, word_id, streak, interval_days, ease, due_at, last_reviewed_at, reps, lapses)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       VALUES ${rows.join(",")}
        ON CONFLICT (user_id, word_id) DO UPDATE SET
          streak = EXCLUDED.streak,
          interval_days = EXCLUDED.interval_days,
@@ -123,28 +153,25 @@ export async function PUT(req: Request) {
        WHERE EXCLUDED.reps > progress_cards.reps
           OR (EXCLUDED.reps = progress_cards.reps
               AND EXCLUDED.last_reviewed_at >= progress_cards.last_reviewed_at)`,
-      [
-        user.id,
-        c.wordId,
-        c.streak,
-        c.intervalDays,
-        c.ease,
-        c.dueAt,
-        c.lastReviewedAt,
-        c.reps,
-        c.lapses,
-      ]
+      params
     );
   }
 
-  for (const d of days) {
+  for (let i = 0; i < days.length; i += CHUNK) {
+    const chunk = days.slice(i, i + CHUNK);
+    const params: unknown[] = [user.id];
+    const rows = chunk.map((d) => {
+      const base = params.length;
+      params.push(d.day, d.reviews, d.correct);
+      return `($1,$${base + 1},$${base + 2},$${base + 3})`;
+    });
     await query(
       `INSERT INTO progress_days (user_id, day, reviews, correct)
-       VALUES ($1,$2,$3,$4)
+       VALUES ${rows.join(",")}
        ON CONFLICT (user_id, day) DO UPDATE SET
          reviews = GREATEST(progress_days.reviews, EXCLUDED.reviews),
          correct = GREATEST(progress_days.correct, EXCLUDED.correct)`,
-      [user.id, d.day, d.reviews, d.correct]
+      params
     );
   }
 

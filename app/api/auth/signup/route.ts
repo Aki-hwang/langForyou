@@ -10,12 +10,17 @@ import {
   validEmail,
   validNickname,
 } from "@/lib/server/auth";
+import { clientIp, rateLimit } from "@/lib/server/ratelimit";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   if (!dbConfigured()) {
     return NextResponse.json({ error: "db_not_configured" }, { status: 503 });
+  }
+  // 학교/회사 등 공유 IP를 고려해 시간당 20회까지 허용
+  if (!rateLimit(`signup:${clientIp(req)}`, 20, 60 * 60_000)) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
   let body: { email?: string; password?: string; nickname?: string };
   try {
@@ -30,7 +35,7 @@ export async function POST(req: Request) {
   if (!validEmail(email)) {
     return NextResponse.json({ error: "invalid_email" }, { status: 400 });
   }
-  if (password.length < 6) {
+  if (password.length < 8) {
     return NextResponse.json({ error: "weak_password" }, { status: 400 });
   }
   if (!validNickname(nickname)) {
