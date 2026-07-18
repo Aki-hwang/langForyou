@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { JlptLevel } from "@/lib/types";
+import type { JlptLevel, Word } from "@/lib/types";
 import { WORDS_BY_LEVEL, LEVEL_META } from "@/data";
 import { speakAsync, stopSpeaking, ttsAvailable } from "@/lib/tts";
 import { acquireWakeLock, releaseWakeLock } from "@/lib/wakeLock";
 import { useHydrated } from "@/lib/storage";
+import { mulberry32, shuffleWith } from "@/lib/random";
+import { sessionNow } from "@/lib/now";
 import ProgressBar from "@/components/ProgressBar";
 import VoiceSettings from "@/components/VoiceSettings";
 
@@ -24,7 +26,7 @@ const SPEEDS = [
 ];
 
 /**
- * 연속듣기: 레벨의 단어를 순서대로 자동 재생한다.
+ * 연속듣기: 레벨의 단어를 순서대로(또는 무작위로 섞어) 자동 재생한다.
  * 각 단어마다 일본어(읽기) 3회 → 한국어(뜻) 1회 재생 후 다음 단어로 넘어간다.
  * 손대지 않고 흘려들으며 반복 학습하는 모드.
  */
@@ -40,11 +42,16 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
   const [finished, setFinished] = useState(false);
   const [rate, setRate] = useState(0.75);
   const [showVoices, setShowVoices] = useState(false);
+  const [shuffled, setShuffled] = useState(false);
+  // 재생 순서 — 셔플을 켜면 무작위 순서, 끄면 원래 순서로 돌아간다
+  const [playlist, setPlaylist] = useState<Word[]>(words);
   const hydrated = useHydrated();
 
   // 재생 세션 토큰 — 값이 바뀌면 진행 중인 루프가 스스로 종료된다
   const tokenRef = useRef(0);
   const indexRef = useRef(0);
+  const playlistRef = useRef<Word[]>(words);
+  const shuffleCountRef = useRef(0);
 
   // 화면을 떠나면 재생 중지 (토큰을 무효화해 진행 중 루프를 종료)
   useEffect(() => {
@@ -56,17 +63,21 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
     };
   }, []);
 
-  async function run(startIndex: number, playRate: number) {
+  async function run(
+    startIndex: number,
+    playRate: number,
+    list: Word[] = playlistRef.current
+  ) {
     const token = ++tokenRef.current;
     setPlaying(true);
     setFinished(false);
     void acquireWakeLock(); // 재생 중 화면 꺼짐 방지
 
-    for (let i = startIndex; i < words.length; i++) {
+    for (let i = startIndex; i < list.length; i++) {
       if (tokenRef.current !== token) return;
       setIndex(i);
       indexRef.current = i;
-      const w = words[i];
+      const w = list[i];
 
       // 일본어(읽기) 3회
       for (let r = 0; r < JA_REPEAT; r++) {
@@ -109,7 +120,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
   }
 
   function goto(i: number) {
-    const clamped = Math.max(0, Math.min(words.length - 1, i));
+    const clamped = Math.max(0, Math.min(playlist.length - 1, i));
     const wasPlaying = playing;
     tokenRef.current++;
     stopSpeaking();
@@ -120,14 +131,42 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
     if (wasPlaying) run(clamped, rate);
   }
 
+  /** 셔플 토글 — 켜면 무작위 순서로 처음부터, 끄면 원래 순서로 복귀 */
+  function toggleShuffle() {
+    const wasPlaying = playing;
+    tokenRef.current++;
+    stopSpeaking();
+    const next = !shuffled;
+    shuffleCountRef.current += 1;
+    const list = next
+      ? shuffleWith(
+          words,
+          mulberry32(sessionNow() + shuffleCountRef.current * 104729)
+        )
+      : words;
+    setShuffled(next);
+    setPlaylist(list);
+    playlistRef.current = list;
+    setIndex(0);
+    indexRef.current = 0;
+    setPhase(null);
+    setFinished(false);
+    if (wasPlaying) {
+      run(0, rate, list);
+    } else {
+      setPlaying(false);
+      void releaseWakeLock();
+    }
+  }
+
   function changeRate(newRate: number) {
     setRate(newRate);
     // 재생 중이면 현재 단어부터 새 속도로 이어서 재생
     if (playing) run(indexRef.current, newRate);
   }
 
-  const current = words[index];
-  const pct = ((index + (finished ? 1 : 0)) / words.length) * 100;
+  const current = playlist[index];
+  const pct = ((index + (finished ? 1 : 0)) / playlist.length) * 100;
 
   return (
     <div className="animate-pop-in flex min-h-[calc(100dvh-8rem)] flex-col">
@@ -149,7 +188,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
           </div>
         </div>
         <span className="text-xs font-medium text-muted">
-          {index + 1}/{words.length}
+          {index + 1}/{playlist.length}
         </span>
         <button
           type="button"
@@ -224,7 +263,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
         </div>
       </div>
 
-      {/* 속도 */}
+      {/* 속도 · 셔플 */}
       <div className="mt-4 flex items-center justify-center gap-2">
         {SPEEDS.map((s) => (
           <button
@@ -240,6 +279,19 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
             {s.label}
           </button>
         ))}
+        <span className="h-4 w-px bg-border-soft" aria-hidden />
+        <button
+          type="button"
+          aria-pressed={shuffled}
+          onClick={toggleShuffle}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+            shuffled
+              ? "bg-violet-500 text-white"
+              : "bg-foreground/5 text-muted"
+          }`}
+        >
+          🔀 무작위
+        </button>
       </div>
 
       {/* 컨트롤 */}
@@ -277,7 +329,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
           type="button"
           aria-label="다음 단어"
           onClick={() => goto(index + 1)}
-          disabled={index >= words.length - 1}
+          disabled={index >= playlist.length - 1}
           className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/5 text-foreground transition active:scale-90 disabled:opacity-30"
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">

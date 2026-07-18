@@ -77,22 +77,30 @@ export default function LevelClient({ level }: { level: JlptLevel }) {
           </svg>
         </Link>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2.5">
           <Link
             href={`/quiz/${level.toLowerCase()}`}
-            className="rounded-2xl border border-border-soft bg-card p-4 transition active:scale-[0.98]"
+            className="rounded-2xl border border-border-soft bg-card p-3 text-center transition active:scale-[0.98]"
           >
             <p className="text-lg">✏️</p>
-            <p className="mt-1.5 font-semibold">퀴즈</p>
-            <p className="mt-0.5 text-xs text-muted">뜻 · 읽기 · 듣기</p>
+            <p className="mt-1 text-sm font-semibold">퀴즈</p>
+            <p className="mt-0.5 text-[11px] text-muted">뜻·읽기·듣기</p>
           </Link>
           <Link
             href={`/listen/${level.toLowerCase()}`}
-            className="rounded-2xl border border-border-soft bg-card p-4 transition active:scale-[0.98]"
+            className="rounded-2xl border border-border-soft bg-card p-3 text-center transition active:scale-[0.98]"
           >
             <p className="text-lg">🎧</p>
-            <p className="mt-1.5 font-semibold">연속듣기</p>
-            <p className="mt-0.5 text-xs text-muted">일본어 3회 · 한국어 1회</p>
+            <p className="mt-1 text-sm font-semibold">연속듣기</p>
+            <p className="mt-0.5 text-[11px] text-muted">자동 재생</p>
+          </Link>
+          <Link
+            href={`/practice/${level.toLowerCase()}`}
+            className="rounded-2xl border border-border-soft bg-card p-3 text-center transition active:scale-[0.98]"
+          >
+            <p className="text-lg">🎯</p>
+            <p className="mt-1 text-sm font-semibold">집중연습</p>
+            <p className="mt-0.5 text-[11px] text-muted">오답만 반복</p>
           </Link>
         </div>
       </div>
