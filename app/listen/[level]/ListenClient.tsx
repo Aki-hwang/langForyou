@@ -15,6 +15,9 @@ import VoiceSettings from "@/components/VoiceSettings";
 const JA_REPEAT = 3; // 일본어 3번
 const KO_REPEAT = 1; // 한국어 1번
 
+/** 재생 단계: 단어 일본어 → 단어 한국어 뜻 → 예문 일본어 → 예문 한국어 번역 */
+type PlayPhase = { lang: "ja" | "ko" | "exJa" | "exKo"; rep: number };
+
 function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -27,7 +30,8 @@ const SPEEDS = [
 
 /**
  * 연속듣기: 레벨의 단어를 순서대로(또는 무작위로 섞어) 자동 재생한다.
- * 각 단어마다 일본어(읽기) 3회 → 한국어(뜻) 1회 재생 후 다음 단어로 넘어간다.
+ * 각 단어마다 일본어(읽기) 3회 → 한국어(뜻) 1회 → 예문(일본어·한국어) 재생 후
+ * 다음 단어로 넘어간다.
  * 손대지 않고 흘려들으며 반복 학습하는 모드.
  */
 export default function ListenClient({ level }: { level: JlptLevel }) {
@@ -36,9 +40,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
 
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [phase, setPhase] = useState<{ lang: "ja" | "ko"; rep: number } | null>(
-    null
-  );
+  const [phase, setPhase] = useState<PlayPhase | null>(null);
   const [finished, setFinished] = useState(false);
   const [rate, setRate] = useState(0.75);
   const [showVoices, setShowVoices] = useState(false);
@@ -96,6 +98,20 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
         if (tokenRef.current !== token) return;
         await delay(450);
       }
+
+      // 예문 일본어 1회
+      if (tokenRef.current !== token) return;
+      setPhase({ lang: "exJa", rep: 1 });
+      await speakAsync(w.example.ja, "ja-JP", playRate);
+      if (tokenRef.current !== token) return;
+      await delay(300);
+
+      // 예문 한국어 번역 1회
+      if (tokenRef.current !== token) return;
+      setPhase({ lang: "exKo", rep: 1 });
+      await speakAsync(w.example.ko, "ko-KR", Math.min(1, playRate + 0.1));
+      if (tokenRef.current !== token) return;
+      await delay(500);
     }
 
     if (tokenRef.current === token) {
@@ -229,6 +245,15 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
               active={phase?.lang === "ko" ? phase.rep : 0}
               color="bg-emerald-500"
             />
+            <span className="text-muted">→</span>
+            <PhaseChip
+              label="예문"
+              total={2}
+              active={
+                phase?.lang === "exJa" ? 1 : phase?.lang === "exKo" ? 2 : 0
+              }
+              color="bg-amber-500"
+            />
           </div>
 
           <div className="flex flex-1 flex-col items-center justify-center">
@@ -256,9 +281,31 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
             </span>
           </div>
 
-          <div className="rounded-2xl bg-foreground/5 p-3.5">
-            <p className="font-ja text-sm leading-relaxed">{current.example.ja}</p>
-            <p className="mt-1 text-xs text-muted">{current.example.ko}</p>
+          <div
+            className={`rounded-2xl p-3.5 transition-colors ${
+              phase?.lang === "exJa" || phase?.lang === "exKo"
+                ? "bg-amber-500/10"
+                : "bg-foreground/5"
+            }`}
+          >
+            <p
+              className={`font-ja text-sm leading-relaxed transition-colors ${
+                phase?.lang === "exJa"
+                  ? "font-semibold text-amber-700 dark:text-amber-400"
+                  : ""
+              }`}
+            >
+              {current.example.ja}
+            </p>
+            <p
+              className={`mt-1 text-xs transition-colors ${
+                phase?.lang === "exKo"
+                  ? "font-semibold text-amber-700 dark:text-amber-400"
+                  : "text-muted"
+              }`}
+            >
+              {current.example.ko}
+            </p>
           </div>
         </div>
       </div>
@@ -343,7 +390,7 @@ export default function ListenClient({ level }: { level: JlptLevel }) {
           ? "🌸 마지막 단어까지 들었어요"
           : playing
             ? "자동으로 다음 단어로 넘어가요 · 재생 중엔 화면이 꺼지지 않아요"
-            : "재생 버튼을 누르면 일본어 3회 · 한국어 1회 반복해서 들려줘요"}
+            : "재생 버튼을 누르면 일본어 3회 · 뜻 1회 · 예문까지 들려줘요"}
       </p>
     </div>
   );
