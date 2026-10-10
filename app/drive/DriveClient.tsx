@@ -20,6 +20,7 @@ import { acquireWakeLock, releaseWakeLock } from "@/lib/wakeLock";
 import { useHydrated } from "@/lib/storage";
 import type { JlptLevel } from "@/lib/types";
 import ProgressBar from "@/components/ProgressBar";
+import VoiceSettings from "@/components/VoiceSettings";
 
 /**
  * 운전 모드 — 시작 버튼 한 번 이후로는 손을 쓰지 않는 회화 연습.
@@ -129,6 +130,7 @@ export default function DriveClient() {
   const [voicePaused, setVoicePaused] = useState(false);
   const [stats, setStats] = useState({ ok: 0, tried: 0 });
   const [pick, setPick] = useState<number | null>(null);
+  const [showVoices, setShowVoices] = useState(false);
 
   const tokenRef = useRef(0);
   const posRef = useRef<Pos>({ scene: 0, stage: "intro", line: 0 });
@@ -500,11 +502,20 @@ export default function DriveClient() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 5l-7 7 7 7" />
             </svg>
           </Link>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold">🚗 운전 모드</h1>
             <p className="text-xs text-muted">손 대지 않고 듣고 말하는 회화 연습</p>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowVoices(true)}
+            className="rounded-full bg-foreground/5 px-3.5 py-2 text-xs font-medium text-muted transition active:scale-95"
+          >
+            🔊 음성 설정
+          </button>
         </header>
+
+        {showVoices && <VoiceSettings onClose={() => setShowVoices(false)} />}
 
         {hydrated && !ttsAvailable() && (
           <p className="rounded-2xl bg-rose-500/10 p-3 text-center text-xs text-rose-700 dark:text-rose-400">
@@ -551,6 +562,7 @@ export default function DriveClient() {
             <li>• 처음 시작할 때 마이크 권한을 <b>허용</b>해 주세요</li>
             <li>• 화면을 켠 채로 거치대에 두세요 — 화면이 꺼지거나 다른 앱으로 가면 멈춰요</li>
             <li>• 무음 모드를 끄면 신호음이 잘 들려요</li>
+            <li>• 목소리가 딱딱하면: 설정 → 손쉬운 사용 → 읽기 및 말하기 → 음성 → 일본어에서 <b>Kyoko(향상됨)</b>·<b>O-ren(프리미엄)</b>, 한국어에서 <b>Yuna(프리미엄)</b>을 내려받고 위 🔊 음성 설정에서 고르세요</li>
             <li>• 운전 중엔 화면을 보지 말고 소리만 따라가세요</li>
           </ul>
         </section>
