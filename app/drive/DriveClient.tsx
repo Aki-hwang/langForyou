@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { SCENES, type ConvLine, type Speaker } from "@/data/conversations";
 import { speakAsync, stopSpeaking, ttsAvailable, type TtsLang } from "@/lib/tts";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/speechMatch";
 import { acquireWakeLock, releaseWakeLock } from "@/lib/wakeLock";
 import { useHydrated } from "@/lib/storage";
+import type { JlptLevel } from "@/lib/types";
 import ProgressBar from "@/components/ProgressBar";
 
 /**
@@ -40,6 +41,11 @@ const STAGE_LABEL: Record<Stage, string> = {
   drill: "듣고 말하기",
   review: "틀린 문장 복습",
   role: "역할극 · B 역할",
+};
+
+const LEVEL_NOTE: Partial<Record<JlptLevel, string>> = {
+  N5: "기초 회화",
+  N4: "〜たい · 〜てもいい · 〜たことがある · 〜そう 등",
 };
 
 const RATE_NORMAL = 0.85;
@@ -553,31 +559,38 @@ export default function DriveClient() {
           <p className="mb-2 text-sm font-semibold">시작할 장면</p>
           <div className="space-y-2">
             {SCENES.map((sc, i) => (
-              <button
-                key={sc.id}
-                type="button"
-                onClick={() => setPick(i)}
-                className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition active:scale-[0.98] ${
-                  startScene === i
-                    ? "border-indigo-500 bg-indigo-500/10"
-                    : "border-border-soft bg-card"
-                }`}
-              >
-                <span className="text-2xl">{sc.emoji}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold">
-                    {i + 1}. {sc.title}
-                  </span>
-                  <span className="font-ja block text-xs text-muted">
-                    {sc.titleJa} · {sc.lines.length}문장
-                  </span>
-                </span>
-                {hydrated && savedScene === i && savedScene > 0 && (
-                  <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
-                    이어서
-                  </span>
+              <Fragment key={sc.id}>
+                {sc.level !== SCENES[i - 1]?.level && (
+                  <p className={`flex items-baseline gap-2 px-1 text-xs ${i > 0 ? "pt-3" : ""}`}>
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400">{sc.level}</span>
+                    <span className="text-muted">{LEVEL_NOTE[sc.level]}</span>
+                  </p>
                 )}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setPick(i)}
+                  className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition active:scale-[0.98] ${
+                    startScene === i
+                      ? "border-indigo-500 bg-indigo-500/10"
+                      : "border-border-soft bg-card"
+                  }`}
+                >
+                  <span className="text-2xl">{sc.emoji}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">
+                      {i + 1}. {sc.title}
+                    </span>
+                    <span className="font-ja block text-xs text-muted">
+                      {sc.titleJa} · {sc.lines.length}문장
+                    </span>
+                  </span>
+                  {hydrated && savedScene === i && savedScene > 0 && (
+                    <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
+                      이어서
+                    </span>
+                  )}
+                </button>
+              </Fragment>
             ))}
           </div>
         </section>
@@ -603,7 +616,7 @@ export default function DriveClient() {
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <p className="text-sm font-semibold">
-            {scene.emoji} {view.scene + 1}. {scene.title}
+            {scene.emoji} {scene.level} · {view.scene + 1}. {scene.title}
           </p>
           <div className="mt-1.5">
             <ProgressBar value={pct} barClassName="bg-indigo-500" />
