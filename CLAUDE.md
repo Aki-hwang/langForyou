@@ -19,6 +19,7 @@ JLPT 기반 일본어 단어 학습 앱 (한국어 사용자 대상). Next.js 16
 - 발음은 `lib/tts.ts`에서 Web Speech API(ja-JP·ko-KR) 사용 — 외부 API 없음. `speakAsync`는 Promise 기반이라 연속듣기(`app/listen/[level]`)에서 순차 재생에 사용.
 - 연속듣기는 단어마다 일본어 읽기 3회 → 한국어 뜻 1회 → 예문(일본어·한국어 번역) 자동 재생. 취소는 `tokenRef` 증가로 진행 중 async 루프를 무효화. 🔀 무작위 토글로 재생 순서를 셔플 가능(시드 PRNG, 끄면 원래 순서로 복귀).
 - 집중연습(`app/practice/[level]`)은 선택한 개수(10/20/30/전체)의 단어를 무작위 출제하고, 틀린 단어만 모아 다음 라운드로 반복 — 전부 맞힐 때까지. 문제 형식·채점은 퀴즈와 동일(뜻/읽기/듣기 순환, SRS grade 연동).
+- 운전 모드(`app/drive`)는 핸즈프리 회화 연습: 장면(`data/conversations.ts`)마다 전체 듣기 → 한국어 듣고 일본어로 말하기 → 틀린 문장 복습 → B 역할극. 신호음(`lib/earcon.ts`) 뒤에만 마이크를 열어 `lib/stt.ts`(Web Speech 인식, ja-JP)로 듣고 `lib/speechMatch.ts`로 판정(바이그램 유사도 ≥ 0.6) 및 일본어 음성 명령 감지. 인식 불가·권한 거부 시 자동 진행. iOS는 첫 발화·오디오 해제를 탭 핸들러 안에서 해야 함.
 - 페이지는 대부분 클라이언트 컴포넌트. 동적 라우트(`[level]`)는 서버 래퍼에서 `params`를 await 후 클라이언트 컴포넌트에 전달.
 - 렌더 중 `Date.now()`/`Math.random()`/ref 쓰기 금지(React Compiler lint). 시각은 `lib/now.ts`의 `sessionNow()`, 셔플은 `lib/random.ts`의 시드 PRNG, 클라 전용 값은 `useHydrated()`로 게이트.
 - 모바일 우선: `max-w-lg` 중앙 정렬, 하단 탭 내비게이션(`components/BottomNav.tsx`), 오른쪽 스와이프 뒤로가기(`components/SwipeBack.tsx`), 다크 모드는 `prefers-color-scheme` 기반.
