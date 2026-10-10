@@ -3,11 +3,23 @@
 import { useEffect, useState } from "react";
 import {
   getPreferredVoiceURI,
+  isVoiceBroken,
   listVoices,
   previewVoice,
   setPreferredVoice,
+  voiceQuality,
   type TtsLang,
+  type VoiceQuality,
 } from "@/lib/tts";
+
+const QUALITY_LABEL: Record<Exclude<VoiceQuality, null>, string> = {
+  premium: "프리미엄",
+  enhanced: "향상됨",
+  compact: "기본",
+};
+
+/** 미리듣기 결과 — 재생 불가 음성을 표시하기 위해 */
+type PreviewState = Record<string, "playing" | "ok" | "fail">;
 
 /**
  * 음성 선택 바텀시트.
@@ -34,6 +46,14 @@ export default function VoiceSettings({ onClose }: { onClose: () => void }) {
     synth.addEventListener("voiceschanged", reload);
     return () => synth.removeEventListener("voiceschanged", reload);
   }, []);
+
+  const [preview, setPreview] = useState<PreviewState>({});
+
+  async function runPreview(v: SpeechSynthesisVoice, lang: TtsLang) {
+    setPreview((p) => ({ ...p, [v.voiceURI]: "playing" }));
+    const ok = await previewVoice(v, lang);
+    setPreview((p) => ({ ...p, [v.voiceURI]: ok ? "ok" : "fail" }));
+  }
 
   function choose(lang: TtsLang, voiceURI: string | null) {
     setPreferredVoice(lang, voiceURI);
@@ -70,6 +90,8 @@ export default function VoiceSettings({ onClose }: { onClose: () => void }) {
           lang="ja-JP"
           voices={voices.ja}
           selected={pref.ja}
+          preview={preview}
+          onPreview={runPreview}
           onChoose={choose}
         />
         <VoiceSection
@@ -77,14 +99,19 @@ export default function VoiceSettings({ onClose }: { onClose: () => void }) {
           lang="ko-KR"
           voices={voices.ko}
           selected={pref.ko}
+          preview={preview}
+          onPreview={runPreview}
           onChoose={choose}
         />
 
         <p className="mt-5 rounded-2xl bg-foreground/5 p-3.5 text-[11px] leading-relaxed text-muted">
           💡 더 자연스러운 음성을 원하면 기기에 고품질 음성을 설치하세요.
           <br />
-          iPhone: 설정 → 손쉬운 사용 → 콘텐츠 말하기 → 음성 → 일본어에서
-          &ldquo;Kyoko (고급)&rdquo; 다운로드
+          iPhone: 설정 → 손쉬운 사용 → 읽기 및 말하기 → 음성 → 일본어에서
+          &ldquo;Kyoko (향상됨)&rdquo; 다운로드 후 Safari를 완전히 껐다 켜기.
+          프리미엄 음성(O-ren 등)은 Safari에 나타나지 않을 수 있어요.
+          <br />
+          🔇 소리가 전혀 안 나면 무음 모드를 끄고 볼륨을 올려 보세요.
           <br />
           Android: Google TTS(스피치 서비스) 설치 후 일본어 음성 데이터 다운로드
         </p>
@@ -98,12 +125,16 @@ function VoiceSection({
   lang,
   voices,
   selected,
+  preview,
+  onPreview,
   onChoose,
 }: {
   title: string;
   lang: TtsLang;
   voices: SpeechSynthesisVoice[];
   selected: string | null;
+  preview: PreviewState;
+  onPreview: (v: SpeechSynthesisVoice, lang: TtsLang) => void;
   onChoose: (lang: TtsLang, voiceURI: string | null) => void;
 }) {
   return (
@@ -122,16 +153,33 @@ function VoiceSection({
             checked={selected === null}
             onSelect={() => onChoose(lang, null)}
           />
-          {voices.map((v) => (
-            <VoiceRow
-              key={v.voiceURI}
-              label={v.name}
-              sub={v.localService ? "기기 내장" : "온라인"}
-              checked={selected === v.voiceURI}
-              onSelect={() => onChoose(lang, v.voiceURI)}
-              onPreview={() => previewVoice(v, lang)}
-            />
-          ))}
+          {voices.map((v) => {
+            const q = voiceQuality(v);
+            const state = preview[v.voiceURI];
+            const failed =
+              state === "fail" || (state === undefined && isVoiceBroken(v.voiceURI));
+            const parts = [
+              q ? QUALITY_LABEL[q] : null,
+              v.localService ? "기기 내장" : "온라인",
+            ].filter(Boolean);
+            return (
+              <VoiceRow
+                key={v.voiceURI}
+                label={q ? `${v.name} (${QUALITY_LABEL[q]})` : v.name}
+                sub={
+                  failed
+                    ? "⚠️ 이 브라우저에서 소리가 나지 않아요"
+                    : state === "playing"
+                      ? "재생 중…"
+                      : parts.join(" · ")
+                }
+                warn={failed}
+                checked={selected === v.voiceURI}
+                onSelect={() => onChoose(lang, v.voiceURI)}
+                onPreview={() => onPreview(v, lang)}
+              />
+            );
+          })}
         </div>
       )}
     </section>
@@ -142,12 +190,14 @@ function VoiceRow({
   label,
   sub,
   checked,
+  warn = false,
   onSelect,
   onPreview,
 }: {
   label: string;
   sub: string;
   checked: boolean;
+  warn?: boolean;
   onSelect: () => void;
   onPreview?: () => void;
 }) {
@@ -170,7 +220,13 @@ function VoiceRow({
         </span>
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium">{label}</span>
-          <span className="block text-[11px] text-muted">{sub}</span>
+          <span
+            className={`block text-[11px] ${
+              warn ? "text-amber-600 dark:text-amber-400" : "text-muted"
+            }`}
+          >
+            {sub}
+          </span>
         </span>
       </button>
       {onPreview && (
