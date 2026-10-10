@@ -80,11 +80,13 @@ function pickVoice(lang: TtsLang): SpeechSynthesisVoice | null {
 function makeUtterance(
   text: string,
   lang: TtsLang,
-  rate: number
+  rate: number,
+  pitch = 1
 ): SpeechSynthesisUtterance {
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang;
   u.rate = rate;
+  u.pitch = pitch;
   const voice = pickVoice(lang);
   if (voice) u.voice = voice;
   return u;
@@ -133,11 +135,13 @@ export function previewVoice(voice: SpeechSynthesisVoice, lang: TtsLang): void {
 /**
  * Promise 기반 발화 — 재생이 끝나면 resolve.
  * 연속듣기처럼 여러 발화를 순서대로 이어 붙일 때 사용한다.
+ * pitch는 대화 장면에서 화자(A/B)를 구분할 때 사용.
  */
 export function speakAsync(
   text: string,
   lang: TtsLang,
-  rate = 0.85
+  rate = 0.85,
+  pitch = 1
 ): Promise<void> {
   return new Promise((resolve) => {
     if (!ttsAvailable()) {
@@ -145,7 +149,7 @@ export function speakAsync(
       return;
     }
     const synth = window.speechSynthesis;
-    const u = makeUtterance(text, lang, rate);
+    const u = makeUtterance(text, lang, rate, pitch);
     let done = false;
     const finish = () => {
       if (!done) {

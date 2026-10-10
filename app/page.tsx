@@ -97,6 +97,25 @@ export default function HomePage() {
         </Link>
       )}
 
+      {/* 운전 모드 */}
+      <Link
+        href="/drive"
+        className="block rounded-2xl border border-border-soft bg-card p-4 transition active:scale-[0.98]"
+      >
+        <div className="flex items-center gap-3.5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-indigo-500 text-2xl">
+            🚗
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">운전 모드 · 회화 연습</p>
+            <p className="mt-0.5 text-xs text-muted">
+              손 대지 않고 듣고 말하기 — 출퇴근길에
+            </p>
+          </div>
+          <span className="text-muted">›</span>
+        </div>
+      </Link>
+
       {/* JLPT 레벨 */}
       <section>
         <h2 className="mb-3 text-base font-semibold">JLPT 레벨별 학습</h2>
